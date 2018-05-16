@@ -119,6 +119,21 @@ def check_boundary(i, worst_rank, highest_ranks):
                 return False
         return True
 
+
+def print_win_prb(d_win):
+    sys_name_list = set()
+    for k in d_win.keys():
+        k1,k2 = k.split('-')
+        sys_name_list.add(k1)
+        sys_name_list.add(k2)
+    sys_name_list = sorted(list(sys_name_list))
+
+    print('%s\t%s' % ('name', '\t'.join(sys_name_list)))
+    for k1 in sys_name_list:
+        r_list = [d_win[k1 + '-' + k2] for k2 in sys_name_list]
+        print('%s\t%s' %
+              (k1, '\t'.join([str(it * 100.0)[:5] for it in r_list])))
+
 if __name__ == '__main__':
     # score file
     sys_rank = defaultdict(list)
@@ -129,11 +144,19 @@ if __name__ == '__main__':
     else:
         files = ['%s%d_mu_sigma.json' % (args.files[0], x) for x in range(args.n)]
 
+    win_prb_sum = {}
     for filename in files:
         sys_mu_sigma = json.load(open(filename, 'r'))
 
         if sys_mu_sigma.has_key('data_points'):
             data_points = sys_mu_sigma.pop('data_points')
+
+        if sys_mu_sigma.has_key('win_prb'):
+            win_prb = sys_mu_sigma.pop('win_prb')
+            for k, v in win_prb.items():
+                if not win_prb_sum.has_key(k):
+                    win_prb_sum[k] = []
+                win_prb_sum[k].append(v)
 
         systems = sys_mu_sigma.keys()
         ranklist = rank_by_mu(sys_mu_sigma)
@@ -142,6 +165,10 @@ if __name__ == '__main__':
 
         for k, v in sys_mu_sigma.items():
             sys_mu[k].append(v[0])
+
+    win_prb_sum = dict([(k, np.mean(v)) for k, v in win_prb_sum.items()])
+    print_win_prb(win_prb_sum)
+    
 
     for s_key, s_rank in sys_rank.items():
         s_rank.sort()
